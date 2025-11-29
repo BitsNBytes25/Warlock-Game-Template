@@ -52,12 +52,10 @@ GAME_SERVICE="your-game-server"
 # scriptlet:_common/require_root.sh
 # scriptlet:_common/get_firewall.sh
 # scriptlet:_common/package_install.sh
-# scriptlet:_common/firewall_allow.sh
 # scriptlet:_common/download.sh
 # scriptlet:bz_eval_tui/prompt_text.sh
 # scriptlet:bz_eval_tui/prompt_yn.sh
 # scriptlet:bz_eval_tui/print_header.sh
-# scriptlet:steam/install-steamcmd.sh
 # scriptlet:ufw/install.sh
 
 print_header "$GAME_DESC *unofficial* Installer ${INSTALLER_VERSION}"
@@ -100,7 +98,23 @@ function install_application() {
 	[ -e "$GAME_DIR/AppFiles" ] || sudo -u $GAME_USER mkdir -p "$GAME_DIR/AppFiles"
 
 
-	# download game, use install_steamcmd, or some other install source
+	# To download a game with steamcmd, include the following header
+	#  # scriptlet:steam/install-steamcmd.sh
+	# and use 
+	#  install_steamcmd
+	#  sudo -u $GAME_USER /usr/games/steamcmd +force_install_dir $GAME_DIR/AppFiles +login anonymous +app_update ${STEAM_ID} validate +quit
+	#
+	# For manual downloads, the following can be used
+	#  if ! download "$SRC" "$GAME_DIR/manage.py"; then
+	#      echo "Could not download management script!" >&2
+	#      exit 1
+	#  fi
+	
+	# If you need to configure the firewall for this game service here,
+	# ensure you include the following header
+	#  # scriptlet:_common/firewall_allow.sh
+	# and then run
+	# firewall_allow --port ${PORT} --udp --comment "${GAME_DESC} Game Port"
 
 	# Install system service file to be loaded by systemd
     cat > /etc/systemd/system/${GAME_SERVICE}.service <<EOF
