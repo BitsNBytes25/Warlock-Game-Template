@@ -57,6 +57,7 @@ GAME_SERVICE="your-game-server"
 # scriptlet:bz_eval_tui/prompt_yn.sh
 # scriptlet:bz_eval_tui/print_header.sh
 # scriptlet:ufw/install.sh
+# scriptlet:warlock/install_warlock_manager.sh
 
 print_header "$GAME_DESC *unofficial* Installer ${INSTALLER_VERSION}"
 
@@ -110,6 +111,15 @@ function install_application() {
 	#      exit 1
 	#  fi
 	
+	# Install the management script
+	install_warlock_manager "$REPO" "$INSTALLER_VERSION"
+	
+	# Use the management script to install the game server
+	if ! $GAME_DIR/manage.py --update; then
+		echo "Could not install $GAME_DESC, exiting" >&2
+		exit 1
+	fi
+	
 	# If you need to configure the firewall for this game service here,
 	# ensure you include the following header
 	#  # scriptlet:_common/firewall_allow.sh
@@ -127,50 +137,6 @@ EOF
 		[ -d "/var/lib/warlock" ] || mkdir -p "/var/lib/warlock"
 		echo -n "$GAME_DIR" > "/var/lib/warlock/${WARLOCK_GUID}.app"
 	fi
-}
-
-##
-# Install the management script from the project's repo
-#
-# Expects the following variables:
-#   GAME_USER    - User account to install the game under
-#   GAME_DIR     - Directory to install the game into
-#
-function install_management() {
-	print_header "Performing install_management"
-
-	# Install management console and its dependencies
-	local SRC=""
-
-	if [[ "$INSTALLER_VERSION" == *"~DEV"* ]]; then
-		# Development version, pull from dev branch
-		SRC="https://raw.githubusercontent.com/${REPO}/refs/heads/dev/dist/manage.py"
-	else
-		# Stable version, pull from tagged release
-		SRC="https://raw.githubusercontent.com/${REPO}/refs/tags/${INSTALLER_VERSION}/dist/manage.py"
-	fi
-
-	if ! download "$SRC" "$GAME_DIR/manage.py"; then
-		# Fallback to main branch
-		SRC="https://raw.githubusercontent.com/${REPO}/refs/heads/main/dist/manage.py"
-		if ! download "$SRC" "$GAME_DIR/manage.py"; then
-			echo "Could not download management script!" >&2
-			exit 1
-		fi
-	fi
-
-	chown $GAME_USER:$GAME_USER "$GAME_DIR/manage.py"
-	chmod +x "$GAME_DIR/manage.py"
-
-	# Install configuration definitions
-	cat > "$GAME_DIR/configs.yaml" <<EOF
-# script:configs.yaml
-EOF
-
-	# If a pyenv is required:
-	sudo -u $GAME_USER python3 -m venv "$GAME_DIR/.venv"
-	sudo -u $GAME_USER "$GAME_DIR/.venv/bin/pip" install --upgrade pip
-	sudo -u $GAME_USER "$GAME_DIR/.venv/bin/pip" install pyyaml
 }
 
 function postinstall() {
@@ -274,8 +240,6 @@ if [ "$MODE" == "install" ]; then
 	fi
 
 	install_application
-
-	install_management
 
 	postinstall
 

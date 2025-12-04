@@ -26,9 +26,6 @@ from scriptlets.warlock.default_run import *
 
 here = os.path.dirname(os.path.realpath(__file__))
 
-# Require sudo / root for starting/stopping the service
-IS_SUDO = os.geteuid() == 0
-
 
 class GameApp(BaseApp):
 	"""
@@ -227,7 +224,7 @@ def menu_first_run(game: GameApp):
 	"""
 	print_header('First Run Configuration')
 
-	if not IS_SUDO:
+	if os.geteuid() != 0:
 		print('ERROR: Please run this script with sudo to perform first-run configuration.')
 		sys.exit(1)
 
