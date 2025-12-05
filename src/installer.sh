@@ -25,7 +25,7 @@
 #
 # Syntax:
 #   MODE_UNINSTALL=--uninstall - Perform an uninstallation
-#   OVERRIDE_DIR=--dir=<path> - Use a custom installation directory instead of the default (optional)
+#   OVERRIDE_DIR=--dir=<src> - Use a custom installation directory instead of the default (optional)
 #   SKIP_FIREWALL=--skip-firewall - Do not install or configure a system firewall
 #   NONINTERACTIVE=--non-interactive - Run the installer in non-interactive mode (useful for scripted installs)
 #
@@ -66,7 +66,7 @@ print_header "$GAME_DESC *unofficial* Installer ${INSTALLER_VERSION}"
 ############################################
 
 ##
-# Install the VEIN game server using Steam
+# Install the game server
 #
 # Expects the following variables:
 #   GAME_USER    - User account to install the game under
@@ -103,16 +103,13 @@ function install_application() {
 	#  # scriptlet:steam/install-steamcmd.sh
 	# and use 
 	#  install_steamcmd
-	#  sudo -u $GAME_USER /usr/games/steamcmd +force_install_dir $GAME_DIR/AppFiles +login anonymous +app_update ${STEAM_ID} validate +quit
-	#
-	# For manual downloads, the following can be used
-	#  if ! download "$SRC" "$GAME_DIR/manage.py"; then
-	#      echo "Could not download management script!" >&2
-	#      exit 1
-	#  fi
 	
 	# Install the management script
 	install_warlock_manager "$REPO" "$INSTALLER_VERSION"
+
+	# If other PIP packages are required for your management interface,
+	# add them here as necessary, for example for RCON support:
+	#  sudo -u $GAME_USER $GAME_DIR/.venv/bin/pip install rcon
 	
 	# Use the management script to install the game server
 	if ! $GAME_DIR/manage.py --update; then
@@ -122,6 +119,7 @@ function install_application() {
 	
 	# If you need to configure the firewall for this game service here,
 	# ensure you include the following header
+	# Ideally the management script should handle this if possible to provide the operator with an easy way to change the port.
 	#  # scriptlet:_common/firewall_allow.sh
 	# and then run
 	# firewall_allow --port ${PORT} --udp --comment "${GAME_DESC} Game Port"
