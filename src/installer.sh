@@ -37,7 +37,6 @@
 ############################################
 
 # Name of the game (used to create the directory)
-INSTALLER_VERSION="v20251127~DEV"
 GAME="GameName"
 GAME_DESC="Game Dedicated Server"
 REPO="your-github/your-repo"
@@ -59,7 +58,7 @@ GAME_SERVICE="your-game-server"
 # scriptlet:ufw/install.sh
 # scriptlet:warlock/install_warlock_manager.sh
 
-print_header "$GAME_DESC *unofficial* Installer ${INSTALLER_VERSION}"
+print_header "$GAME_DESC *unofficial* Installer"
 
 ############################################
 ## Installer Actions
@@ -105,7 +104,7 @@ function install_application() {
 	#  install_steamcmd
 	
 	# Install the management script
-	install_warlock_manager "$REPO" "$INSTALLER_VERSION"
+	install_warlock_manager "$REPO"
 
 	# If other PIP packages are required for your management interface,
 	# add them here as necessary, for example for RCON support:

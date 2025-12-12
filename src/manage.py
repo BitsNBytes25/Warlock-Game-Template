@@ -46,6 +46,9 @@ class GameApp(SteamApp):
 			'manager': INIConfig('manager', os.path.join(here, '.settings.ini'))
 		}
 		self.load()
+		
+		# Steam games that support branches should use this snippet too
+		self.steam_branch = self.get_option_value('Steam Branch')
 
 	def get_save_files(self) -> Union[list, None]:
 		"""
