@@ -103,11 +103,6 @@ function install_application() {
 	#  # scriptlet:steam/install-steamcmd.sh
 	# and use 
 	#  install_steamcmd
-
-	# Install configuration definitions to be used by the manager
-	cat > "$GAME_DIR/configs.yaml" <<EOF
-# script:configs.yaml
-EOF
 	
 	# Install the management script
 	install_warlock_manager "$REPO" "$BRANCH"
