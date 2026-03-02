@@ -108,8 +108,12 @@ function install_application() {
 	install_warlock_manager "$REPO" "$BRANCH"
 
 	# If other PIP packages are required for your management interface,
-	# add them here as necessary, for example for RCON support:
-	#  sudo -u $GAME_USER $GAME_DIR/.venv/bin/pip install rcon
+	# add them here as necessary, for example:
+	#  sudo -u $GAME_USER $GAME_DIR/.venv/bin/pip install name-of-package
+
+	# If you need to forward parameters to the game manager from the installer,
+	# call set-config with the appropriate key/value here.
+	# sudo -u $GAME_USER $GAME_DIR/manage.py set-config "Feature Name" "$FEATURE_VALUE"
 
 	# Install installer (this script) for uninstallation or manual work
 	download "https://raw.githubusercontent.com/${REPO}/refs/heads/${BRANCH}/dist/installer.sh" "$GAME_DIR/installer.sh"
@@ -117,7 +121,7 @@ function install_application() {
 	chown $GAME_USER:$GAME_USER "$GAME_DIR/installer.sh"
 	
 	# Use the management script to install the game server
-	if ! $GAME_DIR/manage.py --update; then
+	if ! $GAME_DIR/manage.py update; then
 		echo "Could not install $GAME_DESC, exiting" >&2
 		exit 1
 	fi
@@ -133,6 +137,11 @@ function install_application() {
     cat > /etc/systemd/system/${GAME_SERVICE}.service <<EOF
 # script:systemd-template.service
 EOF
+	# Additional system files can be installed here too,
+	# for example socket init files.
+	#cat > /etc/systemd/system/${GAME_SERVICE}.socket <<EOF
+	## script:systemd-template.socket
+	#EOF
     systemctl daemon-reload
 
 	if [ -n "$WARLOCK_GUID" ]; then
@@ -146,7 +155,7 @@ function postinstall() {
 	print_header "Performing postinstall"
 
 	# First run setup
-	$GAME_DIR/manage.py --first-run
+	$GAME_DIR/manage.py first-run
 }
 
 ##
@@ -165,6 +174,7 @@ function uninstall_application() {
 
 	# Service files
 	[ -e "/etc/systemd/system/${GAME_SERVICE}.service" ] && rm "/etc/systemd/system/${GAME_SERVICE}.service"
+	# [ -e "/etc/systemd/system/${GAME_SERVICE}.socket" ] && rm "/etc/systemd/system/${GAME_SERVICE}.socket"
 
 	# Game files
 	[ -d "$GAME_DIR" ] && rm -rf "$GAME_DIR/AppFiles"

@@ -2,6 +2,16 @@
 
 Clone this repo and start populating with your game.
 
+This is primarily comprised of two components; an install script (`src/installer.sh`) and a management interface (`src/manage.py`).
+
+The install script is responsible for creating the necessary directory structure,
+installing dependencies, setting up the environment, and installing the game manager.
+
+The Python manager is responsible for installing and updating the actual game binary
+and interfacing with all components within the game such as configuration and game API.
+
+(The Python manager handles installation/updates to allow the operator to update the game server without re-running the installer.)
+
 ## Directory Structure
 
 The notable directories are:
@@ -91,7 +101,7 @@ For games that rely on Steam as the installation backend, the following import
 provides `SteamApp`:
 
 ```python
-from scriptlets.warlock.steam_app import *
+from warlock_manager.apps.steam_app import SteamApp
 
 ...
 
@@ -101,7 +111,7 @@ class GameApp(SteamApp):
 For games that do not use Steam, the base application can be used instead for `BaseApp`:
 
 ```python
-from scriptlets.warlock.base_app import *
+from warlock_manager.apps.base_app import BaseApp
 
 ... 
 
@@ -139,6 +149,9 @@ via available API for the respective game.
 
 
 ## Building your Installer
+
+Prior to development, you can run `setup-dev.sh` to create a local `.venv` virtual environment
+for Warlock-Manager and its dependencies and to update the compiler to the latest version.
 
 Once you have populated the `src/` directory with your scripts, you can build your installer by running:
 
