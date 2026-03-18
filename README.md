@@ -32,7 +32,6 @@ Not to be confused with src, this directory contains supplemental files used by 
 These do not get compiled, but are instead referenced by the scripts in src.
 
 * configs.yaml - A YAML file containing configuration data for your game.
-* systemd-template.service - A systemd service template file for running your game as a service.
 
 ### `media/`
 
@@ -96,6 +95,18 @@ It also serves as the interface between your game and [Warlock](https://github.c
 ### Game Application
 
 Just like installer.sh, the manager can also import scriptlets.
+
+This is notable for the path environmental setup to ensure that `.venv` path is used for Python dependencies.
+
+```python
+#!/usr/bin/env python3
+import os
+# import:org_python/venv_path_include.py
+
+# ... rest of imports
+```
+
+This import will be replaced with the scriptlet to assign `.venv` as the source for imports for the rest of the script.
 
 For games that rely on Steam as the installation backend, the following import
 provides `SteamApp`:
@@ -169,12 +180,12 @@ This will generate:
 
 ## Deploying to Warlock
 
-To deploy your game to Warlock, copy the contents of warlock.yaml
+To deploy your game to Warlock for local testing copy the contents of warlock.yaml
 and add it to `Apps.yaml` in Warlock.
 
-For local testing, just updating your local copy is sufficient,
-but to publish your installer to the greater community please issue a merge request
-with your metadata.
+To contribute your game to the greater community,
+please issue a merge request with your metadata added
+or create a [new request](https://github.com/BitsNBytes25/Warlock/issues/new/choose) with your metadata.
 
 
 ## Supplemental Projects and Shameless-self-plugs

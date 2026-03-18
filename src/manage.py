@@ -66,36 +66,6 @@ class GameApp(BaseApp):
 		# Optional, only needed for private branches with passwords
 		# self.steam_branch_password = None
 
-	def get_save_files(self) -> list | None:
-		"""
-		Get the list of supplemental files or directories for this game, or None if not applicable
-
-		This list of files **should not** be fully resolved, and will use `self.get_save_directory()` as the base path.
-		For example, to return `AppFiles/SaveData` and `AppFiles/Config`:
-
-		```python
-		return ['SaveData', 'Config']
-		```
-
-		:return:
-		"""
-		return None
-
-	def get_save_directory(self) -> str | None:
-		"""
-		Get the full directory path for save content for game, or None if not applicable
-
-		For example, to return AppFiles beside the management script:
-
-		```python
-		here = os.path.dirname(os.path.realpath(sys.argv[0]))
-		return os.path.join(here, 'AppFiles')
-		```
-
-		:return:
-		"""
-		return os.path.join(here, 'AppFiles')
-
 	def first_run(self) -> bool:
 		"""
 		Perform any first-run configuration needed for this game
@@ -115,11 +85,17 @@ class GameService(BaseService):
 		:param file:
 		"""
 		super().__init__(service, game)
-
 		self.configs = {
 			'server': PropertiesConfig('server', os.path.join(here, 'AppFiles/server.properties'))
 		}
 		self.load()
+
+	def get_executable(self) -> str:
+		"""
+		Get the full executable for this game service
+		:return:
+		"""
+		return self.get_app_directory() + '/Game-Executable.bin'
 
 	def option_value_updated(self, option: str, previous_value, new_value):
 		"""
@@ -228,6 +204,21 @@ class GameService(BaseService):
 				return int(line.strip().split(' ')[0])
 		return 0
 		'''
+
+	def get_save_files(self) -> list | None:
+		"""
+		Get the list of supplemental files or directories for this game, or None if not applicable
+
+		This list of files **should not** be fully resolved, and will use `self.get_save_directory()` as the base path.
+		For example, to return `AppFiles/SaveData` and `AppFiles/Config`:
+
+		```python
+		return ['SaveData', 'Config']
+		```
+
+		:return:
+		"""
+		return None
 
 if __name__ == '__main__':
 	app = app_runner(GameApp())

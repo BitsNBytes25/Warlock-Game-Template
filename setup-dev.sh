@@ -5,7 +5,7 @@
 # Setup a virtual environment for Python with the necessary dependencies
 python3 -m venv .venv
 source .venv/bin/activate
-pip install --force-reinstall warlock-manager@git+https://github.com/BitsNBytes25/Warlock-Manager.git@main
+pip install --force-reinstall warlock-manager@git+https://github.com/BitsNBytes25/Warlock-Manager.git@release-v2
 
 # Install newest version of scripts compiler
 if which curl; then
