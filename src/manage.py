@@ -8,7 +8,6 @@ import os
 # otherwise the imports will fail when running as a standalone script.
 # import:org_python/venv_path_include.py
 
-import yaml
 import logging
 
 # Import the appropriate type of handler for the game installer.
@@ -51,8 +50,10 @@ class GameApp(BaseApp):
 
 		self.name = 'GameName'
 		self.desc = 'Longer identifier for the game server'
-		self.services = ('list-of-services',)
 		self.service_handler = GameService
+
+		# Use this to mark certain features as disabled in this game manager
+		# self.disabled_features = {'api'}
 
 		self.configs = {
 			'manager': INIConfig('manager', os.path.join(here, '.settings.ini'))
@@ -76,6 +77,19 @@ class GameApp(BaseApp):
 		if os.geteuid() != 0:
 			logging.error('Please run this script with sudo to perform first-run configuration.')
 			return False
+
+		# Install the game with Steam.
+		# It's a good idea to ensure the game is installed on first run.
+		# self.update()
+
+		# First run is a great time to auto-create some services for this game too
+		#services = self.get_services()
+		#if len(services) == 0:
+		#	# No services detected, create one.
+		#	logging.info('No services detected, creating one...')
+		#	self.create_service('valheim-server')
+		#else:
+		#	logging.info('Detected %d services, skipping first-run service creation.' % len(services))
 
 		return True
 

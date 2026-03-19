@@ -121,6 +121,7 @@ function install_application() {
 
 	[ -e "$GAME_DIR/AppFiles" ] || sudo -u $GAME_USER mkdir -p "$GAME_DIR/AppFiles"
 	[ -e "$GAME_DIR/Environments" ] || sudo -u $GAME_USER mkdir -p "$GAME_DIR/Environments"
+	# [ -e "$GAME_DIR/Configs" ] || sudo -u $GAME_USER mkdir -p "$GAME_DIR/Configs"
 
 
 	# To download a game with steamcmd, include the following header
@@ -129,7 +130,7 @@ function install_application() {
 	#  install_steamcmd
 	
 	# Install the management script
-	install_warlock_manager "$REPO" "$BRANCH"
+	install_warlock_manager "$REPO" "$BRANCH" "release-v2"
 
 	# If other PIP packages are required for your management interface,
 	# add them here as necessary, for example:
@@ -183,13 +184,16 @@ function uninstall_application() {
 	print_header "Performing uninstall_application"
 
 	for envfile in "$GAME_DIR/Environments/"*.env; do
-		SERVICE=$(basename "$envfile" .env)
-		$GAME_DIR/manage.py remove-service --service "$SERVICE"
+		SERVICE="$(basename "$envfile" .env)"
+		if [ "$SERVICE" != "*" ]; then
+			$GAME_DIR/manage.py remove-service --service "$SERVICE"
+		fi
 	done
 
 	# Game files
 	[ -d "$GAME_DIR/AppFiles" ] && rm -rf "$GAME_DIR/AppFiles"
 	[ -d "$GAME_DIR/Environments" ] && rm -rf "$GAME_DIR/Environments"
+	# [ -d "$GAME_DIR/Configs" ] && rm -rf "$GAME_DIR/Configs"
 
 	# Management scripts
 	[ -e "$GAME_DIR/manage.py" ] && rm "$GAME_DIR/manage.py"
@@ -221,10 +225,13 @@ if [ -e "$GAME_DIR/Environments" ]; then
 	# This is important to prevent conflicts with the installer trying to modify files while the service is running.
 	for envfile in "$GAME_DIR/Environments/"*.env; do
 		SERVICE=$(basename "$envfile" .env)
-		if systemctl -q is-active $SERVICE; then
-			echo "$GAME_DESC service is currently running, please stop all instances before running this installer."
-			echo "You can do this with: sudo systemctl stop $SERVICE"
-			exit 1
+		# If there are no services, this will just be '*.env'.
+		if [ "$SERVICE" != "*" ]; then
+			if systemctl -q is-active $SERVICE; then
+				echo "$GAME_DESC service is currently running, please stop all instances before running this installer."
+				echo "You can do this with: sudo systemctl stop $SERVICE"
+				exit 1
+			fi
 		fi
 	done
 fi
