@@ -9,6 +9,7 @@ import os
 # import:org_python/venv_path_include.py
 
 import yaml
+import logging
 
 # Import the appropriate type of handler for the game installer.
 # Common options are:
@@ -72,6 +73,10 @@ class GameApp(BaseApp):
 
 		:return:
 		"""
+		if os.geteuid() != 0:
+			logging.error('Please run this script with sudo to perform first-run configuration.')
+			return False
+
 		return True
 
 
