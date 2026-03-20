@@ -37,8 +37,6 @@ from warlock_manager.libs.app_runner import app_runner
 # If your script manages the firewall, (recommended), import the Firewall library
 from warlock_manager.libs.firewall import Firewall
 
-here = os.path.dirname(os.path.realpath(__file__))
-
 
 class GameApp(BaseApp):
 	"""
@@ -51,12 +49,13 @@ class GameApp(BaseApp):
 		self.name = 'GameName'
 		self.desc = 'Longer identifier for the game server'
 		self.service_handler = GameService
+		self.service_prefix = 'your-game-'
 
 		# Use this to mark certain features as disabled in this game manager
 		# self.disabled_features = {'api'}
 
 		self.configs = {
-			'manager': INIConfig('manager', os.path.join(here, '.settings.ini'))
+			'manager': INIConfig('manager', os.path.join(self.get_app_directory(), '.settings.ini'))
 		}
 		self.load()
 
@@ -77,6 +76,8 @@ class GameApp(BaseApp):
 		if os.geteuid() != 0:
 			logging.error('Please run this script with sudo to perform first-run configuration.')
 			return False
+
+		super().first_run()
 
 		# Install the game with Steam.
 		# It's a good idea to ensure the game is installed on first run.
@@ -105,7 +106,7 @@ class GameService(BaseService):
 		"""
 		super().__init__(service, game)
 		self.configs = {
-			'server': PropertiesConfig('server', os.path.join(here, 'AppFiles/server.properties'))
+			'server': PropertiesConfig('server', os.path.join(self.get_app_directory(), 'server.properties'))
 		}
 		self.load()
 
