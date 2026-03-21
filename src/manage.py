@@ -37,6 +37,9 @@ from warlock_manager.libs.app_runner import app_runner
 # If your script manages the firewall, (recommended), import the Firewall library
 from warlock_manager.libs.firewall import Firewall
 
+# Utilities provided by Warlock that are common to many applications
+from warlock_manager.libs import utils
+
 
 class GameApp(BaseApp):
 	"""
@@ -55,7 +58,7 @@ class GameApp(BaseApp):
 		# self.disabled_features = {'api'}
 
 		self.configs = {
-			'manager': INIConfig('manager', os.path.join(self.get_app_directory(), '.settings.ini'))
+			'manager': INIConfig('manager', os.path.join(utils.get_app_directory(), '.settings.ini'))
 		}
 		self.load()
 
