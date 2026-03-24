@@ -197,11 +197,28 @@ class GameService(BaseService):
 	def get_port_definitions(self) -> list:
 		"""
 		Get a list of port definitions for this service
+
+		Each entry in the returned list should contain 3 items:
+
+		* Config name or integer of port (for non-definable ports)
+		* 'UDP' or 'TCP' to indicate protocol
+		* Short description of the port purpose
+		* Optional boolean to indicate if this is an optional port (ie: not checked at startup)
+
+		Example:
+
+		```python
+		return [
+			['Game Port', 'UDP', 'Primary game port for clients to connect to', False],
+			[25565, 'TCP', 'RCON port, statically assigned and cannot be changed', True]
+		]
+		```
+
 		:return:
 		"""
 		# Return a string to a config parameter to allow changing, or a number to use a fixed port
 		return [
-			('Server Port', 'udp', '%s game port' % self.game.desc)
+			('Server Port', 'udp', '%s game port' % self.game.desc, False)
 		]
 
 	def get_game_pid(self) -> int:
