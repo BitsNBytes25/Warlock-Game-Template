@@ -218,7 +218,7 @@ class GameService(BaseService):
 		"""
 		# Return a string to a config parameter to allow changing, or a number to use a fixed port
 		return [
-			('Server Port', 'udp', '%s game port' % self.game.desc, False)
+			('Server Port', 'udp', '%s game port' % self.game.name, False)
 		]
 
 	def get_game_pid(self) -> int:
@@ -259,6 +259,55 @@ class GameService(BaseService):
 		:return:
 		"""
 		return None
+
+	def get_mods(self) -> list:
+		"""
+		Get all mods that are available on this service
+
+		Each list is expected to contain the following properties:
+
+		* id - ID descriptor of this mod, either generated or assigned by the mod system
+		* name - Short name of the mod
+		* path - Path on the filesystem to this mod
+		* enabled - T/F if this mod is enabled for this game
+
+		:return:
+		"""
+		# If this functionality is not supported, add `'mods'` to `self.disabled_features` and return an empty list.
+		return []
+
+	def enable_mod(self, mod_id: str):
+		"""
+		Enable an installed mod in this game
+
+		:param mod_id:
+		:return:
+		"""
+		# If this functionality is not supported, add `'mods'` to `self.disabled_features`.
+		pass
+
+	def disable_mod(self, mod_id: str):
+		"""
+		Disable a mod from this game service, but do not uninstall it (if possible)
+
+		:param mod_id:
+		:return:
+		"""
+		# If this functionality is not supported, add `'mods'` to `self.disabled_features`.
+		pass
+
+	def remove_mod(self, mod_id: str):
+		"""
+		Remove a mod by its mod ID
+
+		Will completely uninstall the requested mod
+
+		:param mod_id:
+		:return:
+		"""
+		# If this functionality is not supported, add `'mods'` to `self.disabled_features`.
+		pass
+
 
 if __name__ == '__main__':
 	app = app_runner(GameApp())
