@@ -32,6 +32,21 @@ else
 fi
 chmod +x compile.py
 
+# Ensure compile.sources will install the bootstrap files from the appropriate branch.
+if [ -e "$HERE/compile.sources" ]; then
+	if grep -q "warlock=github:BitsNBytes25/Warlock-Manager" "$HERE/compile.sources"; then
+		# Update the existing line for warlock-manager if it exists
+		sed -i "s|warlock=github:BitsNBytes25/Warlock-Manager:.*|warlock=github:BitsNBytes25/Warlock-Manager:${WARLOCK_MANAGER}|g" "$HERE/compile.sources"
+	else
+		# Append the line for warlock-manager if it doesn't exist
+		echo "warlock=github:BitsNBytes25/Warlock-Manager:${WARLOCK_MANAGER}" >> "$HERE/compile.sources"
+	fi
+else
+	cat > "$HERE/compile.sources" <<EOF
+warlock=github:BitsNBytes25/Warlock-Manager:${WARLOCK_MANAGER}
+EOF
+fi
+
 if [ "$WARLOCK_NOTICE" -eq 1 ]; then
 	echo "NOTICE - using ${WARLOCK_MANAGER} branch for local checkout which may differ from PyPI package!"
 	echo "         This development branch may contain fixes not present in the release."
