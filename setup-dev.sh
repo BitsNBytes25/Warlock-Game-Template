@@ -6,6 +6,15 @@ HERE="$(dirname "$(realpath "$0")")"
 # Pull the requested version of the manager from the installation script
 WARLOCK_MANAGER="$(grep 'install_warlock_manager' "$HERE/src/installer.sh" | grep -v '#' | head -n1 | cut -d ' ' -f 4 | sed 's:"::g' | sed "s:'::g")"
 WARLOCK_MANAGER="${WARLOCK_MANAGER:-main}"
+WARLOCK_NOTICE=0
+
+if [[ "$WARLOCK_MANAGER" =~ ^[0-9]+\.[0-9]+$ ]]; then
+	# If a release version is requested, switch to the development branch related to that branch.
+	# This could cause a potential disconnect between dev and production versions,
+	# but it allows for testing development of a specific branch prior to deployment.
+	WARLOCK_MANAGER="release-v${WARLOCK_MANAGER}"
+	WARLOCK_NOTICE=1
+fi
 
 # Setup a virtual environment for Python with the necessary dependencies
 python3 -m venv .venv
@@ -22,3 +31,8 @@ else
 	exit 1
 fi
 chmod +x compile.py
+
+if [ "$WARLOCK_NOTICE" -eq 1 ]; then
+	echo "NOTICE - using ${WARLOCK_MANAGER} branch for local checkout which may differ from PyPI package!"
+	echo "         This development branch may contain fixes not present in the release."
+fi
