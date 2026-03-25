@@ -126,7 +126,7 @@ function install_application() {
 	#  install_steamcmd
 	
 	# Install the management script
-	install_warlock_manager "$REPO" "$BRANCH" "release-v2"
+	install_warlock_manager "$REPO" "$BRANCH" "2.1"
 
 	# If other PIP packages are required for your management interface,
 	# add them here as necessary, for example:
