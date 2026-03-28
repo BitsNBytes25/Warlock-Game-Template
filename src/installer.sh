@@ -87,7 +87,6 @@ print_header "$GAME_DESC *unofficial* Installer ${INSTALLER_VERSION}"
 #   GAME_DIR     - Directory to install the game into
 #   GAME_DESC    - Description of the game (for logging purposes)
 #   GAME_SERVICE - Service name to install with Systemd
-#   SAVE_DIR     - Directory to store game save files
 #
 function install_application() {
 	print_header "Performing install_application"
@@ -174,7 +173,6 @@ function postinstall() {
 # Expects the following variables:
 #   GAME_DIR     - Directory where the game is installed
 #   GAME_SERVICE - Service name used with Systemd
-#   SAVE_DIR     - Directory where game save files are stored
 #
 function uninstall_application() {
 	print_header "Performing uninstall_application"
