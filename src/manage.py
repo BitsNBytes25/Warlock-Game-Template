@@ -40,6 +40,14 @@ from warlock_manager.libs.firewall import Firewall
 # Utilities provided by Warlock that are common to many applications
 from warlock_manager.libs import utils
 
+# Select the baseline for mod support
+# from warlock_manager.mods.base_mod import BaseMod
+from warlock_manager.mods.warlock_nexus_mod import WarlockNexusMod
+
+
+class GameMod(WarlockNexusMod):
+	pass
+
 
 class GameApp(BaseApp):
 	"""
@@ -52,6 +60,8 @@ class GameApp(BaseApp):
 		self.name = 'GameName'
 		self.desc = 'Longer identifier for the game server'
 		self.service_handler = GameService
+		# Set this to the class that handles the game mod system, if applicable
+		self.mod_handler = GameMod
 		self.service_prefix = 'your-game-'
 
 		# Use this to mark certain features as disabled in this game manager
@@ -82,6 +92,10 @@ class GameApp(BaseApp):
 
 		super().first_run()
 
+		# Create necessary directories if applicable
+		# utils.makedirs(os.path.join(utils.get_app_directory(), 'Configs'))
+		# utils.makedirs(os.path.join(utils.get_app_directory(), 'Packages'))
+
 		# Install the game with Steam.
 		# It's a good idea to ensure the game is installed on first run.
 		# self.update()
@@ -93,9 +107,24 @@ class GameApp(BaseApp):
 		#	logging.info('No services detected, creating one...')
 		#	self.create_service('valheim-server')
 		#else:
-		#	logging.info('Detected %d services, skipping first-run service creation.' % len(services))
+		# Ensure services match new format
+		#for service in services:
+		#	logging.info('Ensuring %s service file is on latest format' % service.service)
+		#	service.build_systemd_config()
+		#	service.reload()
 
 		return True
+
+	def remove(self):
+		"""
+		Remove this game and all instances under it
+
+		:return:
+		"""
+		super().remove()
+
+		#shutil.rmtree(os.path.join(utils.get_app_directory(), 'Configs'))
+		#shutil.rmtree(os.path.join(utils.get_app_directory(), 'Packages'))
 
 
 class GameService(BaseService):
@@ -118,9 +147,16 @@ class GameService(BaseService):
 		Get the full executable for this game service
 		:return:
 		"""
-		return self.get_app_directory() + '/Game-Executable.bin'
+		path = os.path.join(self.get_app_directory(), 'Game-Executable.bin')
 
-	def option_value_updated(self, option: str, previous_value, new_value):
+		# Add arguments for the service, if applicable
+		#args = cli_formatter(self.configs['service'], 'flag')
+		#if args:
+		#	path += ' ' + args
+
+		return path
+
+	def option_value_updated(self, option: str, previous_value, new_value) -> bool | None:
 		"""
 		Handle any special actions needed when an option value is updated
 		:param option:
@@ -128,6 +164,7 @@ class GameService(BaseService):
 		:param new_value:
 		:return:
 		"""
+		success = None
 
 		# Special option actions
 		if option == 'Server Port':
@@ -135,11 +172,18 @@ class GameService(BaseService):
 			if previous_value:
 				Firewall.remove(int(previous_value), 'tcp')
 			Firewall.allow(int(new_value), 'tcp', 'Allow %s game port' % self.game.desc)
+			success = True
 		elif option == 'Query Port':
 			# Update firewall for game port change
 			if previous_value:
 				Firewall.remove(int(previous_value), 'udp')
 			Firewall.allow(int(new_value), 'udp', 'Allow %s query port' % self.game.desc)
+			success = True
+
+		# For games that need to regenerate systemd to apply changes
+		#self.build_systemd_config()
+		#self.reload()
+		return success
 
 	def is_api_enabled(self) -> bool:
 		"""
@@ -209,8 +253,8 @@ class GameService(BaseService):
 
 		```python
 		return [
-			['Game Port', 'UDP', 'Primary game port for clients to connect to', False],
-			[25565, 'TCP', 'RCON port, statically assigned and cannot be changed', True]
+			('Game Port', 'UDP', 'Primary game port for clients to connect to', False),
+			(25565, 'TCP', 'RCON port, statically assigned and cannot be changed', True)
 		]
 		```
 
@@ -260,52 +304,35 @@ class GameService(BaseService):
 		"""
 		return None
 
-	def get_mods(self) -> list:
+	def get_enabled_mods(self) -> list[GameMod]:
 		"""
-		Get all mods that are available on this service
-
-		Each list is expected to contain the following properties:
-
-		* id - ID descriptor of this mod, either generated or assigned by the mod system
-		* name - Short name of the mod
-		* path - Path on the filesystem to this mod
-		* enabled - T/F if this mod is enabled for this game
+		Get all enabled mods that are locally available on this service
 
 		:return:
 		"""
-		# If this functionality is not supported, add `'mods'` to `self.disabled_features` and return an empty list.
+		# Do whatever logic is necessary for retrieving locally enabled mods for this service.
 		return []
 
-	def enable_mod(self, mod_id: str):
+	def add_mod(self, mod: 'GameMod', force: bool = False) -> bool:
 		"""
-		Enable an installed mod in this game
+		Install a mod
 
-		:param mod_id:
+		:param mod: Mod to install
+		:param force: Force the installation even if the mod is already installed
 		:return:
 		"""
-		# If this functionality is not supported, add `'mods'` to `self.disabled_features`.
+		# Do whatever logic is necessary for downloading and installing a mod.
 		pass
 
-	def disable_mod(self, mod_id: str):
+	def remove_mod(self, mod: 'GameMod') -> bool:
 		"""
-		Disable a mod from this game service, but do not uninstall it (if possible)
-
-		:param mod_id:
-		:return:
-		"""
-		# If this functionality is not supported, add `'mods'` to `self.disabled_features`.
-		pass
-
-	def remove_mod(self, mod_id: str):
-		"""
-		Remove a mod by its mod ID
+		Remove a mod
 
 		Will completely uninstall the requested mod
 
-		:param mod_id:
+		:param mod:
 		:return:
 		"""
-		# If this functionality is not supported, add `'mods'` to `self.disabled_features`.
 		pass
 
 

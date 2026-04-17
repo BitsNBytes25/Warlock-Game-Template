@@ -86,7 +86,6 @@ print_header "$GAME_DESC *unofficial* Installer ${INSTALLER_VERSION}"
 #   GAME_USER    - User account to install the game under
 #   GAME_DIR     - Directory to install the game into
 #   GAME_DESC    - Description of the game (for logging purposes)
-#   GAME_SERVICE - Service name to install with Systemd
 #
 function install_application() {
 	print_header "Performing install_application"
@@ -118,6 +117,9 @@ function install_application() {
 		fi
 	fi
 
+	# Most games install into AppFiles, so ensure it's created.
+	[ -e "$GAME_DIR/AppFiles" ] || sudo -u $GAME_USER mkdir -p "$GAME_DIR/AppFiles"
+
 
 	# To download a game with steamcmd, include the following header
 	#  # scriptlet:steam/install-steamcmd.sh
@@ -125,7 +127,7 @@ function install_application() {
 	#  install_steamcmd
 	
 	# Install the management script
-	install_warlock_manager "$REPO" "$BRANCH" "2.1"
+	install_warlock_manager "$REPO" "$BRANCH" "2.2"
 
 	# If other PIP packages are required for your management interface,
 	# add them here as necessary, for example:
@@ -149,10 +151,46 @@ function install_application() {
 }
 
 ##
+# Upgrade logic for 1.0 to 2.2 to handle migration of ENV and overrides
+#
+function upgrade_application_1_0() {
+	local LEGACY_SERVICE="some-name"
+	local SERVICE_PATH="/etc/systemd/system/${LEGACY_SERVICE}.service"
+
+	# Migrate existing service to new format
+	# This gets overwrote by the manager, but is needed to tell the system that the service is here.
+	if [ -e "${SERVICE_PATH}" ] && [ ! -e "$GAME_DIR/Environments" ]; then
+		sudo -u $GAME_USER mkdir -p "$GAME_DIR/Environments"
+		# Extract out current environment variables from the systemd file into their own dedicated file
+		egrep '^Environment' "${SERVICE_PATH}" | sed 's:^Environment=::' > "$GAME_DIR/Environments/${LEGACY_SERVICE}.env"
+		chown $GAME_USER:$GAME_USER "$GAME_DIR/Environments/${LEGACY_SERVICE}.env"
+		# Trim out those envs now that they're not longer required
+		cat "${SERVICE_PATH}" | egrep -v '^Environment=' > "${SERVICE_PATH}.new"
+		mv "${SERVICE_PATH}.new" "${SERVICE_PATH}"
+
+		if [ -e "${SERVICE_PATH}.d" ] && [ -e "${SERVICE_PATH}.d/override.conf" ]; then
+			# If there is an override, (used in version 1.0),
+			# grab the CLI and move it to a notes document so the operator can manually review it.
+			touch "$GAME_DIR/Notes.txt"
+			echo "    !! IMPORTANT - Service commands are now generated dynamically, " >> "$GAME_DIR/Notes.txt"
+			echo "    so please manually migrate the following CLI options to your game." >> "$GAME_DIR/Notes.txt"
+			echo "" >> "$GAME_DIR/Notes.txt"
+			egrep '^ExecStart=' "${SERVICE_PATH}.d/override.conf" >> "$GAME_DIR/Notes.txt"
+			chown $GAME_USER:$GAME_USER "$GAME_DIR/Notes.txt"
+			rm -fr "${SERVICE_PATH}.d/override.conf"
+			rm -fr "${SERVICE_PATH}.d"
+		fi
+	fi
+}
+
+##
 # Perform any steps necessary for upgrading an existing installation.
 #
 function upgrade_application() {
 	print_header "Existing installation detected, performing upgrade"
+
+	# Uncomment if you need this
+	# upgrade_application_1_0
 }
 
 ##
@@ -283,6 +321,11 @@ if [ "$MODE" == "reinstall" ]; then
 
 	# Print some instructions and useful tips
     print_header "$GAME_DESC Installation Complete"
+
+	# If there are notes generated during installation, print them now.
+    if [ -e "$GAME_DIR/Notes.txt" ]; then
+    	cat "$GAME_DIR/Notes.txt"
+	fi
 fi
 
 # Operations needed to be performed during an uninstallation
