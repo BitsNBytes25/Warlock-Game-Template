@@ -40,6 +40,9 @@ from warlock_manager.libs.firewall import Firewall
 # Utilities provided by Warlock that are common to many applications
 from warlock_manager.libs import utils
 
+# Useful in some games
+# from warlock_manager.formatters.cli_formatter import cli_formatter
+
 # Select the baseline for mod support
 # from warlock_manager.mods.base_mod import BaseMod
 from warlock_manager.mods.warlock_nexus_mod import WarlockNexusMod
@@ -49,6 +52,7 @@ class GameMod(WarlockNexusMod):
 	pass
 
 
+# For Steam games, swap 'BaseApp' with 'SteamApp'
 class GameApp(BaseApp):
 	"""
 	Game application manager
@@ -59,6 +63,8 @@ class GameApp(BaseApp):
 
 		self.name = 'GameName'
 		self.desc = 'Longer identifier for the game server'
+		# For steam games, include the steam ID
+		# self.steam_id = '90'
 		self.service_handler = GameService
 		# Set this to the class that handles the game mod system, if applicable
 		self.mod_handler = GameMod
@@ -71,14 +77,6 @@ class GameApp(BaseApp):
 			'manager': INIConfig('manager', os.path.join(utils.get_app_directory(), '.settings.ini'))
 		}
 		self.load()
-
-		# If using SteamApp:
-		# self.steam_id = '123456789'
-		# Branch to use for Steam updates, default is 'public' for the main branch.
-		# If using a private branch, set this to the branch name.
-		# self.steam_branch = self.get_option_value('Steam Branch')
-		# Optional, only needed for private branches with passwords
-		# self.steam_branch_password = None
 
 	def first_run(self) -> bool:
 		"""
@@ -139,6 +137,8 @@ class GameService(BaseService):
 		super().__init__(service, game)
 		self.configs = {
 			'server': PropertiesConfig('server', os.path.join(self.get_app_directory(), 'server.properties'))
+			# A common configuration tactic is to store binary parameters in a service file in Configs.
+			# 'service': INIConfig('service', os.path.join(utils.get_base_directory(), 'Configs', 'service.%s.ini' % self.service))
 		}
 		self.load()
 
@@ -171,13 +171,13 @@ class GameService(BaseService):
 			# Update firewall for game port change
 			if previous_value:
 				Firewall.remove(int(previous_value), 'tcp')
-			Firewall.allow(int(new_value), 'tcp', 'Allow %s game port' % self.game.desc)
+			Firewall.allow(int(new_value), 'tcp', '%s game port' % self.game.name)
 			success = True
 		elif option == 'Query Port':
 			# Update firewall for game port change
 			if previous_value:
 				Firewall.remove(int(previous_value), 'udp')
-			Firewall.allow(int(new_value), 'udp', 'Allow %s query port' % self.game.desc)
+			Firewall.allow(int(new_value), 'udp', '%s query port' % self.game.name)
 			success = True
 
 		# For games that need to regenerate systemd to apply changes
@@ -242,7 +242,7 @@ class GameService(BaseService):
 		"""
 		Get a list of port definitions for this service
 
-		Each entry in the returned list should contain 3 items:
+		Each entry in the returned list should contain 3 or 4 items:
 
 		* Config name or integer of port (for non-definable ports)
 		* 'UDP' or 'TCP' to indicate protocol

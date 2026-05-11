@@ -3,8 +3,15 @@
 # Setup this project for development
 
 HERE="$(dirname "$(realpath "$0")")"
+INSTALLER="$HERE/src/installer.sh"
 # Pull the requested version of the manager from the installation script
-WARLOCK_MANAGER="$(grep 'install_warlock_manager' "$HERE/src/installer.sh" | grep -v '#' | head -n1 | cut -d ' ' -f 4 | sed 's:"::g' | sed "s:'::g")"
+if egrep -q '^MANAGER_VERSION=' "$INSTALLER"; then
+	# Pull the version from the variable, cleaner option.
+	WARLOCK_MANAGER="$(egrep '^MANAGER_VERSION=' "$INSTALLER" | head -n1 | sed 's:.*=::' | sed 's:"::g' | sed "s:'::g")"
+else
+	# Traditional approach, only supports basic calls, (ie: not wrapped in if ! ...; then)
+	WARLOCK_MANAGER="$(grep 'install_warlock_manager' "$INSTALLER" | grep -v '#' | head -n1 | sed 's:^[ ]*::' | cut -d ' ' -f 4 | sed 's:"::g' | sed "s:'::g")"
+fi
 WARLOCK_MANAGER="${WARLOCK_MANAGER:-main}"
 WARLOCK_NOTICE=0
 

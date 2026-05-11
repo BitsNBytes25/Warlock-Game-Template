@@ -29,6 +29,7 @@
 #   SKIP_FIREWALL=--skip-firewall - Do not install or configure a system firewall
 #   NONINTERACTIVE=--non-interactive - Run the installer in non-interactive mode (useful for scripted installs)
 #   BRANCH=--branch=<str> - Use a specific branch of the management script repository DEFAULT=main
+#   DEBUG=--debug - Include to show debug output
 #
 # Changelog:
 #   20260318 - Update boilerplate script for v2 of the API
@@ -61,6 +62,12 @@ GAME_USER="steam"
 # For games what use their own user such as Minecraft, this should probably be /home/user or similar.
 GAME_DIR="/home/${GAME_USER}/${GAME}"
 
+# Set the minimum version of the Warlock Manager API to use for this project
+# If a newer version of the branch version is available, that will be used instead,
+# for example, "2.2.12" will use "2.2.54" if .54 is the latest, but NOT "2.3.13"
+# https://github.com/BitsNBytes25/Warlock-Manager
+MANAGER_VERSION="2.2.12"
+
 # compile:usage
 # compile:argparse
 # scriptlet:_common/require_root.sh
@@ -72,6 +79,7 @@ GAME_DIR="/home/${GAME_USER}/${GAME}"
 # scriptlet:bz_eval_tui/prompt_yn.sh
 # scriptlet:bz_eval_tui/print_header.sh
 # scriptlet:warlock/install_warlock_manager.sh
+# scriptlet:bz_eval_log/log.sh
 
 print_header "$GAME_DESC *unofficial* Installer ${INSTALLER_VERSION}"
 
@@ -90,15 +98,40 @@ print_header "$GAME_DESC *unofficial* Installer ${INSTALLER_VERSION}"
 function install_application() {
 	print_header "Performing install_application"
 
+	local debug
+	debug=''
+	if [ $DEBUG -eq 1 ]; then
+		debug='--debug'
+	fi
+
 	# Create the game user account
 	# This will create the account with no password, so if you need to log in with this user,
 	# run `sudo passwd $GAME_USER` to set a password.
 	if [ -z "$(getent passwd $GAME_USER)" ]; then
+		log_info "Creating user account ${GAME_USER}"
 		useradd -m -U $GAME_USER
+	fi
+
+	# Retrieve the home directory for the specified user
+	USER_HOME=$(getent passwd "$GAME_USER" | cut -d: -f6)
+
+	# Check if the retrieval was successful
+	if [ -z "$USER_HOME" ]; then
+		log_error "Could not find home directory for user '$GAME_USER'"
+		exit 1
+	fi
+
+	# If the target home directory already exists, ensure it's owned by the actual user.
+	# This is important in case the operator does something like 'mkdir /home/steam' as root
+	# without realizing that would completely break permissions for that target.
+	if [ -e "$USER_HOME" ]; then
+		log_info "Ensuring correct ownership of ${USER_HOME}"
+		chown $GAME_USER:$GAME_USER "$USER_HOME" -R
 	fi
 
 	# Ensure the target directory exists and is owned by the game user
 	if [ ! -d "$GAME_DIR" ]; then
+		log_info "Creating game directory ${GAME_DIR}"
 		mkdir -p "$GAME_DIR"
 		chown $GAME_USER:$GAME_USER "$GAME_DIR"
 	fi
@@ -119,15 +152,25 @@ function install_application() {
 
 	# Most games install into AppFiles, so ensure it's created.
 	[ -e "$GAME_DIR/AppFiles" ] || sudo -u $GAME_USER mkdir -p "$GAME_DIR/AppFiles"
+	#[ -e "$GAME_DIR/Configs" ] || sudo -u $GAME_USER mkdir -p "$GAME_DIR/Configs"
+	#[ -e "$GAME_DIR/Packages" ] || sudo -u $GAME_USER mkdir -p "$GAME_DIR/Packages"
 
 
 	# To download a game with steamcmd, include the following header
 	#  # scriptlet:steam/install-steamcmd.sh
-	# and use 
-	#  install_steamcmd
+	# and use:
+	#install_steamcmd
+	## Run Steamcmd to ensure it's available; fixes the ERROR! Failed to install app '...' (Missing configuration) issue
+	#if ! sudo -u $GAME_USER /usr/games/steamcmd +login anonymous +quit; then
+	#	log_error "Steamcmd could not be ran!  Unable to install game"
+	#	exit 1
+	#fi
 	
 	# Install the management script
-	install_warlock_manager "$REPO" "$BRANCH" "2.2"
+	if ! install_warlock_manager "$REPO" "$BRANCH" "$MANAGER_VERSION"; then
+		log_error "Warlock Manager could not be installed!  Unable to install game"
+		exit 1
+	fi
 
 	# If other PIP packages are required for your management interface,
 	# add them here as necessary, for example:
@@ -135,7 +178,7 @@ function install_application() {
 
 	# If you need to forward parameters to the game manager from the installer,
 	# call set-config with the appropriate key/value here.
-	# sudo -u $GAME_USER $GAME_DIR/manage.py set-config "Feature Name" "$FEATURE_VALUE"
+	# sudo -u $GAME_USER $GAME_DIR/manage.py $debug set-config "Feature Name" "$FEATURE_VALUE"
 
 	# Install installer (this script) for uninstallation or manual work
 	download "https://raw.githubusercontent.com/${REPO}/refs/heads/${BRANCH}/dist/installer.sh" "$GAME_DIR/installer.sh"
@@ -154,13 +197,27 @@ function install_application() {
 # Upgrade logic for 1.0 to 2.2 to handle migration of ENV and overrides
 #
 function upgrade_application_1_0() {
-	local LEGACY_SERVICE="some-name"
-	local SERVICE_PATH="/etc/systemd/system/${LEGACY_SERVICE}.service"
+	local LEGACY_SERVICE
+	local SERVICE_PATH
+	local debug
+
+	LEGACY_SERVICE="some-name"
+	SERVICE_PATH="/etc/systemd/system/${LEGACY_SERVICE}.service"
+	debug=''
+	if [ $DEBUG -eq 1 ]; then
+		debug='--debug'
+	fi
 
 	# Migrate existing service to new format
 	# This gets overwrote by the manager, but is needed to tell the system that the service is here.
 	if [ -e "${SERVICE_PATH}" ] && [ ! -e "$GAME_DIR/Environments" ]; then
 		sudo -u $GAME_USER mkdir -p "$GAME_DIR/Environments"
+		sudo -u $GAME_USER mkdir -p "$GAME_DIR/Migrations"
+
+		# Export this configuration so the new system can re-obtain all the configuration values
+		# This is important because v1 to v2.2 changed CLI parameters.
+		"$GAME_DIR/manage.py" $debug --service "$LEGACY_SERVICE" --get-configs > "$GAME_DIR/Migrations/${LEGACY_SERVICE}.configs-$(date +%Y%m%d%H%M%S).json"
+
 		# Extract out current environment variables from the systemd file into their own dedicated file
 		egrep '^Environment' "${SERVICE_PATH}" | sed 's:^Environment=::' > "$GAME_DIR/Environments/${LEGACY_SERVICE}.env"
 		chown $GAME_USER:$GAME_USER "$GAME_DIR/Environments/${LEGACY_SERVICE}.env"
@@ -201,8 +258,17 @@ function upgrade_application() {
 function postinstall() {
 	print_header "Performing postinstall"
 
+	local debug
+	debug=''
+	if [ $DEBUG -eq 1 ]; then
+		debug='--debug'
+	fi
+
 	# First run setup
-	$GAME_DIR/manage.py first-run
+	if ! $GAME_DIR/manage.py $debug first-run; then
+		log_error "First run of game manager failed!"
+		exit 1
+	fi
 }
 
 ##
@@ -215,7 +281,13 @@ function postinstall() {
 function uninstall_application() {
 	print_header "Performing uninstall_application"
 
-	$GAME_DIR/manage.py remove --confirm
+	local debug
+	debug=''
+	if [ $DEBUG -eq 1 ]; then
+		debug='--debug'
+	fi
+
+	$GAME_DIR/manage.py $debug remove --confirm
 
 	# Management scripts
 	[ -e "$GAME_DIR/manage.py" ] && rm "$GAME_DIR/manage.py"
@@ -231,6 +303,10 @@ function uninstall_application() {
 ############################################
 ## Pre-exec Checks
 ############################################
+
+if [ $DEBUG -eq 1 ]; then
+	LOG_LEVEL=4  # Set logging to DEBUG
+fi
 
 if [ $MODE_UNINSTALL -eq 1 ]; then
 	MODE="uninstall"
