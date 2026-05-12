@@ -8,8 +8,6 @@ import os
 # otherwise the imports will fail when running as a standalone script.
 # import:org_python/venv_path_include.py
 
-import logging
-
 # Import the appropriate type of handler for the game installer.
 # Common options are:
 from warlock_manager.apps.base_app import BaseApp
@@ -39,9 +37,11 @@ from warlock_manager.libs.firewall import Firewall
 
 # Utilities provided by Warlock that are common to many applications
 from warlock_manager.libs import utils
+from warlock_manager.libs.logger import logger
 
 # Useful in some games
 # from warlock_manager.formatters.cli_formatter import cli_formatter
+# from warlock_manager.libs.proton import get_proton_paths
 
 # Select the baseline for mod support
 # from warlock_manager.mods.base_mod import BaseMod
@@ -74,7 +74,7 @@ class GameApp(BaseApp):
 		# self.disabled_features = {'api'}
 
 		self.configs = {
-			'manager': INIConfig('manager', os.path.join(utils.get_app_directory(), '.settings.ini'))
+			'manager': INIConfig('manager', os.path.join(utils.get_base_directory(), '.settings.ini'))
 		}
 		self.load()
 
@@ -85,29 +85,34 @@ class GameApp(BaseApp):
 		:return:
 		"""
 		if os.geteuid() != 0:
-			logging.error('Please run this script with sudo to perform first-run configuration.')
+			logger.error('Please run this script with sudo to perform first-run configuration.')
 			return False
 
 		super().first_run()
 
 		# Create necessary directories if applicable
-		# utils.makedirs(os.path.join(utils.get_app_directory(), 'Configs'))
-		# utils.makedirs(os.path.join(utils.get_app_directory(), 'Packages'))
+		# utils.makedirs(os.path.join(utils.get_base_directory(), 'Configs'))
+		# utils.makedirs(os.path.join(utils.get_base_directory(), 'Packages'))
 
 		# Install the game with Steam.
 		# It's a good idea to ensure the game is installed on first run.
-		# self.update()
+		# if not self.update():
+		# 	logger.error('Failed to update Steam')
+		# 	return False
+
+		# Run migrations for the application
+		# self.run_migrations()
 
 		# First run is a great time to auto-create some services for this game too
 		#services = self.get_services()
 		#if len(services) == 0:
 		#	# No services detected, create one.
-		#	logging.info('No services detected, creating one...')
+		#	logger.info('No services detected, creating one...')
 		#	self.create_service('valheim-server')
 		#else:
 		# Ensure services match new format
 		#for service in services:
-		#	logging.info('Ensuring %s service file is on latest format' % service.service)
+		#	logger.info('Ensuring %s service file is on latest format' % service.service)
 		#	service.build_systemd_config()
 		#	service.reload()
 
@@ -121,8 +126,8 @@ class GameApp(BaseApp):
 		"""
 		super().remove()
 
-		#shutil.rmtree(os.path.join(utils.get_app_directory(), 'Configs'))
-		#shutil.rmtree(os.path.join(utils.get_app_directory(), 'Packages'))
+		#shutil.rmtree(os.path.join(utils.get_base_directory(), 'Configs'))
+		#shutil.rmtree(os.path.join(utils.get_base_directory(), 'Packages'))
 
 
 class GameService(BaseService):
