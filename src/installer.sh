@@ -66,6 +66,7 @@ GAME_DIR="/home/${GAME_USER}/${GAME}"
 # If a newer version of the branch version is available, that will be used instead,
 # for example, "2.2.12" will use "2.2.54" if .54 is the latest, but NOT "2.3.13"
 # https://github.com/BitsNBytes25/Warlock-Manager
+# For development, use "main" to pull directly from Github main branch for Manager.
 MANAGER_VERSION="2.2.12"
 
 # compile:usage
@@ -178,7 +179,15 @@ function install_application() {
 
 	# If you need to forward parameters to the game manager from the installer,
 	# call set-config with the appropriate key/value here.
-	# sudo -u $GAME_USER $GAME_DIR/manage.py $debug set-config "Feature Name" "$FEATURE_VALUE"
+	# $GAME_USER $GAME_DIR/manage.py $debug set-config "Feature Name" "$FEATURE_VALUE"
+	#
+	# For example to set the Steam Username (for authenticated Steam installs):
+	# if [ -n "$STEAM_USERNAME" ]; then
+	#	$GAME_DIR/manage.py $debug set-config "Steam Username" "$STEAM_USERNAME"
+	# fi
+	#
+	# Then add the following syntax to this game: 
+	# STEAM_USERNAME=--steam-username=<str> - Use a Steam specific user for installing this game
 
 	# Install installer (this script) for uninstallation or manual work
 	download "https://raw.githubusercontent.com/${REPO}/refs/heads/${BRANCH}/dist/installer.sh" "$GAME_DIR/installer.sh"
